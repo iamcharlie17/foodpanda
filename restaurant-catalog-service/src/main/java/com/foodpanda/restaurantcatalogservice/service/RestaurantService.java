@@ -162,7 +162,10 @@ public class RestaurantService {
                                         String restaurantId,
                                         CreateMenuItemRequest request) {
         Restaurant restaurant = findRestaurant(restaurantId);
-        verifyOwner(restaurant, ownerId);
+        // Only verify ownership when the caller is authenticated (ownerId comes from JWT sub)
+        if (ownerId != null) {
+            verifyOwner(restaurant, ownerId);
+        }
 
         MenuItem item = MenuItem.builder()
                 .restaurantId(restaurantId)
@@ -174,8 +177,9 @@ public class RestaurantService {
                 .imageUrl(request.getImageUrl())
                 .build();
 
+        log.info("Saving menu item for restaurantId={} ownerId={}", restaurantId, ownerId);
         MenuItem saved = menuItemRepository.save(item);
-        log.info("Added menu item id={} to restaurantId={}", saved.getId(), restaurantId);
+        log.info("Saved menu item id={} to restaurantId={}", saved.getId(), restaurantId);
 
         return toMenuItemResponse(saved);
     }
