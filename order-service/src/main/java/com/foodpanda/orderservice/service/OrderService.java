@@ -32,6 +32,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final RestTemplate restTemplate;
+    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
 
     @Value("${service.restaurant.url}")
     private String restaurantServiceUrl;
@@ -39,9 +40,10 @@ public class OrderService {
     @Value("${service.user.url}")
     private String userServiceUrl;
 
-    public OrderService(OrderRepository orderRepository, RestTemplate restTemplate) {
+    public OrderService(OrderRepository orderRepository, RestTemplate restTemplate, org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate) {
         this.orderRepository = orderRepository;
         this.restTemplate = restTemplate;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     public OrderResponse placeOrder(String customerId, PlaceOrderRequest request, String token) {
@@ -123,6 +125,17 @@ public class OrderService {
 
         Order saved = orderRepository.save(order);
         log.info("Placed order id={} for customerId={}", saved.getId(), customerId);
+
+        // Publish OrderPlacedEvent
+        com.foodpanda.orderservice.dto.event.OrderEvent event = new com.foodpanda.orderservice.dto.event.OrderEvent(
+                saved.getId(),
+                saved.getCustomerId(),
+                saved.getRestaurantId(),
+                saved.getTotalAmount(),
+                saved.getStatus()
+        );
+        rabbitTemplate.convertAndSend(com.foodpanda.orderservice.config.RabbitMQConfig.ORDER_EXCHANGE, "order.placed", event);
+        log.info("Published OrderEvent for order={}", saved.getId());
 
         return mapToResponse(saved);
     }

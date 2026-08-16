@@ -18,13 +18,15 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final org.springframework.web.client.RestTemplate restTemplate;
+    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
 
     @org.springframework.beans.factory.annotation.Value("${service.order.url:http://localhost:8084}")
     private String orderServiceUrl;
 
-    public PaymentService(PaymentRepository paymentRepository, org.springframework.web.client.RestTemplate restTemplate) {
+    public PaymentService(PaymentRepository paymentRepository, org.springframework.web.client.RestTemplate restTemplate, org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate) {
         this.paymentRepository = paymentRepository;
         this.restTemplate = restTemplate;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -80,6 +82,18 @@ public class PaymentService {
 
         Payment saved = paymentRepository.save(payment);
         log.info("Payment {} initiated for order={} status={}", saved.getId(), saved.getOrderId(), saved.getStatus());
+
+        if ("SUCCESS".equals(saved.getStatus())) {
+            com.foodpanda.paymentservice.dto.event.PaymentEvent event = new com.foodpanda.paymentservice.dto.event.PaymentEvent(
+                    saved.getOrderId(),
+                    saved.getId(),
+                    saved.getCustomerId(),
+                    saved.getAmount(),
+                    saved.getStatus()
+            );
+            rabbitTemplate.convertAndSend(com.foodpanda.paymentservice.config.RabbitMQConfig.PAYMENT_EXCHANGE, "payment.completed", event);
+            log.info("Published PaymentEvent for order={}", saved.getOrderId());
+        }
 
         return toPaymentResponse(saved);
     }

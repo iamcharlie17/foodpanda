@@ -2,6 +2,7 @@ com/foodpanda/deliverydispatchservice/dto/RegisterRiderRequest.class
 com/foodpanda/deliverydispatchservice/config/AppConfig.class
 com/foodpanda/deliverydispatchservice/security/JwtAuthFilter.class
 com/foodpanda/deliverydispatchservice/controller/RiderController.class
+com/foodpanda/deliverydispatchservice/config/RabbitMQConfig.class
 com/foodpanda/deliverydispatchservice/controller/DeliveryController.class
 com/foodpanda/deliverydispatchservice/dto/UserResponse.class
 com/foodpanda/deliverydispatchservice/dto/OrderResponse.class
@@ -9,6 +10,7 @@ com/foodpanda/deliverydispatchservice/dto/UpdateDeliveryStatusRequest.class
 com/foodpanda/deliverydispatchservice/dto/RiderResponse.class
 com/foodpanda/deliverydispatchservice/model/Rider.class
 com/foodpanda/deliverydispatchservice/repository/RiderRepository.class
+com/foodpanda/deliverydispatchservice/dto/event/DeliveryEvent.class
 com/foodpanda/deliverydispatchservice/model/Delivery.class
 com/foodpanda/deliverydispatchservice/exception/GlobalExceptionHandler.class
 com/foodpanda/deliverydispatchservice/DeliveryDispatchServiceApplication.class

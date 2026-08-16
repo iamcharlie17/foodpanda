@@ -1,5 +1,6 @@
 /Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/DeliveryDispatchServiceApplication.java
 /Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/config/AppConfig.java
+/Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/config/RabbitMQConfig.java
 /Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/config/SecurityConfig.java
 /Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/controller/DeliveryController.java
 /Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/controller/RiderController.java
@@ -13,6 +14,7 @@
 /Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/dto/UpdateDeliveryStatusRequest.java
 /Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/dto/UpdateLocationRequest.java
 /Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/dto/UserResponse.java
+/Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/dto/event/DeliveryEvent.java
 /Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/exception/DeliveryNotFoundException.java
 /Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/exception/GlobalExceptionHandler.java
 /Users/riyadhosen/IUT/6th Semester/SDA Lab/project/foodpanda/delivery-dispatch-service/src/main/java/com/foodpanda/deliverydispatchservice/exception/InvalidDeliveryStatusTransitionException.java

@@ -34,17 +34,16 @@ public class DeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final RiderRepository riderRepository;
     private final RestTemplate restTemplate;
+    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
 
     @Value("${service.order.url}")
     private String orderServiceUrl;
 
-    @Value("${service.notification.url}")
-    private String notificationServiceUrl;
-
-    public DeliveryService(DeliveryRepository deliveryRepository, RiderRepository riderRepository, RestTemplate restTemplate) {
+    public DeliveryService(DeliveryRepository deliveryRepository, RiderRepository riderRepository, RestTemplate restTemplate, org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate) {
         this.deliveryRepository = deliveryRepository;
         this.riderRepository = riderRepository;
         this.restTemplate = restTemplate;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     public DeliveryResponse assignDelivery(AssignDeliveryRequest request, String token) {
@@ -101,8 +100,8 @@ public class DeliveryService {
         rider.setIsAvailable(false);
         riderRepository.save(rider);
 
-        // Synchronous call to Notification Service to alert customer
-        notifyCustomer(request.getOrderId(), "A rider has been assigned to your order.", token);
+        // Publish event (instead of synchronous call to notification/order service)
+        publishDeliveryEvent(saved);
 
         return mapToResponse(saved);
     }
@@ -130,13 +129,13 @@ public class DeliveryService {
 
         if (newStatus == DeliveryStatus.DELIVERED) {
             delivery.setDeliveredAt(Instant.now());
-            // Sync call to order-service to mark order as delivered
-            updateOrderServiceStatus(delivery.getOrderId(), newStatus.name(), token);
-            // Sync call to notification-service
-            notifyCustomer(delivery.getOrderId(), "Your order has been delivered!", token);
         }
 
         Delivery saved = deliveryRepository.save(delivery);
+        
+        // Publish event for order/notification service to consume asynchronously
+        publishDeliveryEvent(saved);
+        
         return mapToResponse(saved);
     }
 
@@ -146,42 +145,16 @@ public class DeliveryService {
         return mapToResponse(delivery);
     }
 
-    // ── Inter-Service Calls ──────────────────────────────────────────────────
-
-    private void updateOrderServiceStatus(String orderId, String status, String token) {
-        try {
-            String url = orderServiceUrl + "/api/orders/" + orderId + "/status";
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + token);
-            
-            Map<String, String> body = Map.of("status", status);
-            HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(body, headers);
-
-            restTemplate.exchange(url, HttpMethod.PATCH, requestEntity, String.class);
-            log.info("Successfully updated order {} status to {}", orderId, status);
-        } catch (Exception e) {
-            log.error("Failed to update order status in order-service", e);
-        }
-    }
-
-    private void notifyCustomer(String orderId, String message, String token) {
-        try {
-            // Assuming an internal/system notification endpoint
-            String url = notificationServiceUrl + "/api/notifications/system";
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + token);
-
-            Map<String, String> body = Map.of(
-                    "orderId", orderId,
-                    "message", message
-            );
-            HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(body, headers);
-
-            restTemplate.postForEntity(url, requestEntity, String.class);
-            log.info("Successfully sent notification for order {}", orderId);
-        } catch (Exception e) {
-            log.error("Failed to send notification via notification-service", e);
-        }
+    private void publishDeliveryEvent(Delivery delivery) {
+        com.foodpanda.deliverydispatchservice.dto.event.DeliveryEvent event = new com.foodpanda.deliverydispatchservice.dto.event.DeliveryEvent(
+                delivery.getOrderId(),
+                delivery.getId(),
+                delivery.getRiderId(),
+                delivery.getStatus()
+        );
+                
+        rabbitTemplate.convertAndSend(com.foodpanda.deliverydispatchservice.config.RabbitMQConfig.DELIVERY_EXCHANGE, "delivery.updated", event);
+        log.info("Published DeliveryEvent for order={} status={}", delivery.getOrderId(), delivery.getStatus());
     }
 
     // ── Mappers ─────────────────────────────────────────────────────────────
