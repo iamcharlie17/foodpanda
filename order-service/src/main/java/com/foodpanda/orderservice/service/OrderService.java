@@ -36,31 +36,73 @@ public class OrderService {
     @Value("${service.restaurant.url}")
     private String restaurantServiceUrl;
 
+    @Value("${service.user.url}")
+    private String userServiceUrl;
+
     public OrderService(OrderRepository orderRepository, RestTemplate restTemplate) {
         this.orderRepository = orderRepository;
         this.restTemplate = restTemplate;
     }
 
     public OrderResponse placeOrder(String customerId, PlaceOrderRequest request, String token) {
-        // Here we would typically make synchronous calls to other services
-        // Example: Validate restaurant and items with restaurant-catalog-service
-        // For simplicity, we are assuming items are valid.
-        // In a real app, you'd check:
-        // 1. Restaurant exists and is open
-        // 2. All items exist and prices match
-        
-        // Simulating validation for now
-        // if (!validateItems(request.getRestaurantId(), request.getItems(), token)) {
-        //     throw new MenuItemUnavailableException();
-        // }
+        // Validate customer
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(token);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<UserResponse> userRes = restTemplate.exchange(
+                    userServiceUrl + "/api/users/me", 
+                    HttpMethod.GET, 
+                    entity, 
+                    UserResponse.class
+            );
+            if (!userRes.getStatusCode().is2xxSuccessful() || userRes.getBody() == null) {
+                throw new IllegalArgumentException("Invalid customer");
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Customer validation failed", e);
+        }
+
+        // Validate items with restaurant catalog service
+        String url = restaurantServiceUrl + "/api/restaurants/" + request.getRestaurantId() + "/menu-items";
+        MenuItemResponse[] catalogItems;
+        try {
+            catalogItems = restTemplate.getForObject(url, MenuItemResponse[].class);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Restaurant not found or unavailable.");
+        }
+
+        if (catalogItems == null) {
+            throw new IllegalArgumentException("Restaurant not found or unavailable.");
+        }
 
         Order order = new Order();
         order.setCustomerId(customerId);
         order.setRestaurantId(request.getRestaurantId());
         
-        List<OrderItem> items = request.getItems().stream()
-                .map(item -> new OrderItem(item.getMenuItemId(), item.getName(), item.getPrice(), item.getQuantity()))
-                .collect(Collectors.toList());
+        List<OrderItem> items = new ArrayList<>();
+        for (OrderItemRequest reqItem : request.getItems()) {
+            MenuItemResponse validItem = java.util.Arrays.stream(catalogItems)
+                    .filter(item -> item.getId().equals(reqItem.getMenuItemId()))
+                    .findFirst()
+                    .orElseThrow(() -> new MenuItemUnavailableException());
+            
+            if (validItem.getIsAvailable() == null || !validItem.getIsAvailable()) {
+                throw new MenuItemUnavailableException();
+            }
+            
+            // Validate price (we should use the catalog price)
+            if (reqItem.getPrice() != null && Math.abs(reqItem.getPrice() - validItem.getPrice()) > 0.01) {
+                throw new IllegalArgumentException("Price mismatch for item " + validItem.getName());
+            }
+
+            items.add(new OrderItem(
+                    validItem.getId(),
+                    validItem.getName(),
+                    validItem.getPrice(),
+                    reqItem.getQuantity()
+            ));
+        }
         order.setItems(items);
 
         DeliveryAddress address = new DeliveryAddress(

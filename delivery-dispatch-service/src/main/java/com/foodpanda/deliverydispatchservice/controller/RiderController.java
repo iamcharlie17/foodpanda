@@ -23,8 +23,13 @@ public class RiderController {
 
     @PostMapping
     public ResponseEntity<RiderResponse> registerRider(
+            @RequestHeader(value = "Authorization", required = false) String token,
             @Valid @RequestBody RegisterRiderRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(riderService.registerRider(request));
+        // Strip Bearer prefix if present
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(riderService.registerRider(request, token));
     }
 
     @PatchMapping("/me/availability")

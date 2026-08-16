@@ -21,6 +21,14 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    @ExceptionHandler(InvalidItemException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidItem(InvalidItemException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "error",   "INVALID_MENU_ITEM",
+                "message", ex.getMessage()
+        ));
+    }
+
     @ExceptionHandler(CartItemNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleCartItemNotFound(CartItemNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(

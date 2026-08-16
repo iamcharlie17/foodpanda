@@ -21,9 +21,14 @@ public class PaymentController {
     /** POST /api/payments */
     @PostMapping
     public ResponseEntity<PaymentResponse> initiatePayment(
+            @RequestHeader(value = "Authorization", required = false) String token,
             @AuthenticationPrincipal String customerId,
             @Valid @RequestBody PaymentRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.initiatePayment(customerId, request));
+        // Strip Bearer prefix if present
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.initiatePayment(customerId, request, token));
     }
 
     /** GET /api/payments/{id} */

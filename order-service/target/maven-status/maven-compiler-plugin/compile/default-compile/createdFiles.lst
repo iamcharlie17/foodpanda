@@ -7,6 +7,7 @@ com/foodpanda/orderservice/dto/DeliveryAddressRequest.class
 com/foodpanda/orderservice/exception/GlobalExceptionHandler.class
 com/foodpanda/orderservice/config/SecurityConfig.class
 com/foodpanda/orderservice/dto/OrderListResponse.class
+com/foodpanda/orderservice/dto/MenuItemResponse.class
 com/foodpanda/orderservice/security/JwtUtil.class
 com/foodpanda/orderservice/model/DeliveryAddress.class
 com/foodpanda/orderservice/service/OrderService.class
@@ -24,4 +25,5 @@ com/foodpanda/orderservice/dto/OrderItemRequest.class
 com/foodpanda/orderservice/dto/PlaceOrderRequest.class
 com/foodpanda/orderservice/config/AppConfig.class
 com/foodpanda/orderservice/dto/UpdateStatusRequest.class
+com/foodpanda/orderservice/dto/UserResponse.class
 com/foodpanda/orderservice/OrderServiceApplication.class

@@ -3,6 +3,8 @@ com/foodpanda/deliverydispatchservice/config/AppConfig.class
 com/foodpanda/deliverydispatchservice/security/JwtAuthFilter.class
 com/foodpanda/deliverydispatchservice/controller/RiderController.class
 com/foodpanda/deliverydispatchservice/controller/DeliveryController.class
+com/foodpanda/deliverydispatchservice/dto/UserResponse.class
+com/foodpanda/deliverydispatchservice/dto/OrderResponse.class
 com/foodpanda/deliverydispatchservice/dto/UpdateDeliveryStatusRequest.class
 com/foodpanda/deliverydispatchservice/dto/RiderResponse.class
 com/foodpanda/deliverydispatchservice/model/Rider.class

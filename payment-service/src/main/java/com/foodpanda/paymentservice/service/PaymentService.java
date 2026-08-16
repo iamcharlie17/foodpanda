@@ -17,14 +17,52 @@ public class PaymentService {
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
     private final PaymentRepository paymentRepository;
+    private final org.springframework.web.client.RestTemplate restTemplate;
 
-    public PaymentService(PaymentRepository paymentRepository) {
+    @org.springframework.beans.factory.annotation.Value("${service.order.url:http://localhost:8084}")
+    private String orderServiceUrl;
+
+    public PaymentService(PaymentRepository paymentRepository, org.springframework.web.client.RestTemplate restTemplate) {
         this.paymentRepository = paymentRepository;
+        this.restTemplate = restTemplate;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    public PaymentResponse initiatePayment(String customerId, PaymentRequest request) {
+    public PaymentResponse initiatePayment(String customerId, PaymentRequest request, String token) {
+        // Validate order
+        try {
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            if (token != null) {
+                headers.setBearerAuth(token);
+            }
+            org.springframework.http.HttpEntity<Void> entity = new org.springframework.http.HttpEntity<>(headers);
+            org.springframework.http.ResponseEntity<OrderResponse> orderRes = restTemplate.exchange(
+                    orderServiceUrl + "/api/orders/" + request.getOrderId(), 
+                    org.springframework.http.HttpMethod.GET, 
+                    entity, 
+                    OrderResponse.class
+            );
+            
+            if (!orderRes.getStatusCode().is2xxSuccessful() || orderRes.getBody() == null) {
+                throw new IllegalArgumentException("Invalid order");
+            }
+            
+            OrderResponse order = orderRes.getBody();
+            if (!order.getCustomerId().equals(customerId)) {
+                throw new IllegalArgumentException("Order does not belong to this customer");
+            }
+            if (!"PENDING".equals(order.getPaymentStatus())) {
+                throw new IllegalArgumentException("Order is not in a payable state");
+            }
+            // Check amount matches
+            if (Math.abs(order.getTotalAmount() - request.getAmount()) > 0.01) {
+                throw new IllegalArgumentException("Payment amount does not match order total");
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Order validation failed: " + e.getMessage());
+        }
+
         Payment payment = Payment.builder()
                 .orderId(request.getOrderId())
                 .customerId(customerId)

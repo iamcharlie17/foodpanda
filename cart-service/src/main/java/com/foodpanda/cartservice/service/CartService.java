@@ -9,6 +9,7 @@ import com.foodpanda.cartservice.repository.CartRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Optional;
 
@@ -18,9 +19,14 @@ public class CartService {
     private static final Logger log = LoggerFactory.getLogger(CartService.class);
 
     private final CartRepository cartRepository;
+    private final RestTemplate restTemplate;
 
-    public CartService(CartRepository cartRepository) {
+    @org.springframework.beans.factory.annotation.Value("${service.restaurant.url}")
+    private String restaurantServiceUrl;
+
+    public CartService(CartRepository cartRepository, RestTemplate restTemplate) {
         this.cartRepository = cartRepository;
+        this.restTemplate = restTemplate;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -41,6 +47,28 @@ public class CartService {
     }
 
     public CartResponse addItem(String customerId, AddItemRequest request) {
+        // Validate with restaurant catalog service
+        String url = restaurantServiceUrl + "/api/restaurants/" + request.getRestaurantId() + "/menu-items";
+        MenuItemResponse[] items;
+        try {
+            items = restTemplate.getForObject(url, MenuItemResponse[].class);
+        } catch (Exception e) {
+            throw new com.foodpanda.cartservice.exception.InvalidItemException("Restaurant not found or unavailable.");
+        }
+
+        if (items == null) {
+            throw new com.foodpanda.cartservice.exception.InvalidItemException("Restaurant not found or unavailable.");
+        }
+
+        MenuItemResponse validItem = java.util.Arrays.stream(items)
+                .filter(item -> item.getId().equals(request.getMenuItemId()))
+                .findFirst()
+                .orElseThrow(() -> new com.foodpanda.cartservice.exception.InvalidItemException("Menu item not found in this restaurant."));
+
+        if (validItem.getIsAvailable() == null || !validItem.getIsAvailable()) {
+            throw new com.foodpanda.cartservice.exception.InvalidItemException("Menu item is currently unavailable.");
+        }
+
         Cart cart = cartRepository.findByCustomerId(customerId)
                 .orElseGet(() -> Cart.builder().customerId(customerId).build());
 
@@ -58,13 +86,14 @@ public class CartService {
         if (existingItem.isPresent()) {
             CartItem item = existingItem.get();
             item.setQuantity(item.getQuantity() + request.getQuantity());
-            item.setName(request.getName());
-            item.setPrice(request.getPrice());
+            // Use validated name and price
+            item.setName(validItem.getName());
+            item.setPrice(validItem.getPrice());
         } else {
             cart.getItems().add(new CartItem(
                     request.getMenuItemId(),
-                    request.getName(),
-                    request.getPrice(),
+                    validItem.getName(),
+                    validItem.getPrice(),
                     request.getQuantity()
             ));
         }

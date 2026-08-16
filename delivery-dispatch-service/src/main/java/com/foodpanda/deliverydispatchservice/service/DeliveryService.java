@@ -48,6 +48,32 @@ public class DeliveryService {
     }
 
     public DeliveryResponse assignDelivery(AssignDeliveryRequest request, String token) {
+        // Validate order
+        try {
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            if (token != null) {
+                headers.setBearerAuth(token);
+            }
+            org.springframework.http.HttpEntity<Void> entity = new org.springframework.http.HttpEntity<>(headers);
+            org.springframework.http.ResponseEntity<com.foodpanda.deliverydispatchservice.dto.OrderResponse> orderRes = restTemplate.exchange(
+                    orderServiceUrl + "/api/orders/" + request.getOrderId(), 
+                    org.springframework.http.HttpMethod.GET, 
+                    entity, 
+                    com.foodpanda.deliverydispatchservice.dto.OrderResponse.class
+            );
+            
+            if (!orderRes.getStatusCode().is2xxSuccessful() || orderRes.getBody() == null) {
+                throw new IllegalArgumentException("Invalid order");
+            }
+            
+            com.foodpanda.deliverydispatchservice.dto.OrderResponse order = orderRes.getBody();
+            if (!"READY".equals(order.getStatus())) {
+                throw new IllegalArgumentException("Order is not READY for delivery");
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Order validation failed: " + e.getMessage());
+        }
+
         // Find rider: If riderId is provided, use it; otherwise, find any available rider
         Rider rider;
         if (request.getRiderId() != null && !request.getRiderId().isBlank()) {
